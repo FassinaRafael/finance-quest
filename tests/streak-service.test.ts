@@ -30,4 +30,10 @@ describe('streak-service', () => {
     expect(result.maxStreak).toBe(5); // Retains max streak record
     expect(result.streakReset).toBe(true);
   });
+
+  it('should guarantee at least 1 streak when active today even if initial streak was 0', () => {
+    const result = updateStreak(0, 0, '2026-08-27', '2026-08-27');
+    expect(result.currentStreak).toBe(1);
+    expect(result.maxStreak).toBe(1);
+  });
 });

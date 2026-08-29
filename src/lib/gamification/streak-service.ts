@@ -14,7 +14,7 @@ export function updateStreak(
     // First time logging
     return {
       currentStreak: 1,
-      maxStreak: 1,
+      maxStreak: Math.max(1, maxStreak),
       streakIncremented: true,
       streakReset: false,
       xpEarned: 25,
@@ -25,11 +25,13 @@ export function updateStreak(
   const diff = getDaysDifference(currentDate, lastActivityDate);
 
   if (diff === 0) {
-    // Already active today
+    // Already active today (guarantee at least 1 day of focus)
+    const effectiveStreak = Math.max(1, currentStreak);
+    const effectiveMax = Math.max(maxStreak, effectiveStreak);
     return {
-      currentStreak,
-      maxStreak,
-      streakIncremented: false,
+      currentStreak: effectiveStreak,
+      maxStreak: effectiveMax,
+      streakIncremented: currentStreak === 0,
       streakReset: false,
       xpEarned: 5,
       message: '⚡ Mais um registro hoje! +5 XP.',
@@ -38,7 +40,8 @@ export function updateStreak(
 
   if (diff === 1) {
     // Exactly yesterday: Streak continues!
-    const newStreak = currentStreak + 1;
+    const effectiveBase = Math.max(1, currentStreak);
+    const newStreak = effectiveBase + 1;
     const newMax = Math.max(maxStreak, newStreak);
     const bonusXp = 15 + Math.min(30, newStreak * 2);
 
@@ -52,10 +55,10 @@ export function updateStreak(
     };
   }
 
-  // More than 1 day difference: Streak broken
+  // More than 1 day difference: Streak broken, starts new cycle
   return {
     currentStreak: 1,
-    maxStreak,
+    maxStreak: Math.max(1, maxStreak),
     streakIncremented: false,
     streakReset: true,
     xpEarned: 10,

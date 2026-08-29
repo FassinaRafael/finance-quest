@@ -4,6 +4,7 @@ import { formatTelegramSuccessMessage, sendTelegramMessage } from '@/lib/telegra
 import { transcribeAudioBuffer } from '@/lib/voice/transcriber';
 import { DEFAULT_CATEGORIES } from '@/lib/storage/default-data';
 import { calculateHealthPoints } from '@/lib/gamification/hp-engine';
+import { updateStreak } from '@/lib/gamification/streak-service';
 import { parseYearMonth, getDaysInMonth, getLocalDateString } from '@/lib/utils/date-utils';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import type { TelegramWebhookUpdate } from '@/types/telegram';
@@ -130,8 +131,10 @@ export async function POST(req: NextRequest) {
     let monthlyIncome = 5000;
     let variableLimit = 2200;
     let currentHp = 100;
-    let currentStreak = 1;
-    let totalXp = 50;
+    let currentStreak = 0;
+    let maxStreak = 0;
+    let lastActivityDate: string | null = null;
+    let totalXp = 0;
 
     try {
       // Query profile matching telegram_chat_id or fallback to first available profile
@@ -167,8 +170,10 @@ export async function POST(req: NextRequest) {
 
         if (gameState) {
           currentHp = gameState.current_hp ?? 100;
-          currentStreak = gameState.current_streak ?? 1;
-          totalXp = gameState.total_xp ?? 50;
+          currentStreak = gameState.current_streak ?? 0;
+          totalXp = gameState.total_xp ?? 0;
+          maxStreak = gameState.max_streak ?? 0;
+          lastActivityDate = gameState.last_activity_date ?? null;
         }
       }
     } catch (err) {
@@ -194,7 +199,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. Calculate updated gamification state
+    // 8. Calculate updated gamification state & streaks
+    const streakResult = updateStreak(currentStreak, maxStreak, lastActivityDate, today);
+
     const hpResult = calculateHealthPoints({
       monthlyIncome,
       variableBudgetLimit: variableLimit,
@@ -205,7 +212,7 @@ export async function POST(req: NextRequest) {
       currentHp,
     });
 
-    const xpEarned = 25;
+    const xpEarned = 25 + streakResult.xpEarned;
     const nextXp = totalXp + xpEarned;
 
     // 9. Update gamification state in Supabase
@@ -215,7 +222,8 @@ export async function POST(req: NextRequest) {
           user_id: userId,
           current_hp: hpResult.hp,
           total_xp: nextXp,
-          current_streak: currentStreak,
+          current_streak: streakResult.currentStreak,
+          max_streak: streakResult.maxStreak,
           last_activity_date: today,
           updated_at: new Date().toISOString(),
         });
@@ -229,7 +237,7 @@ export async function POST(req: NextRequest) {
       const replyMessage = formatTelegramSuccessMessage({
         expense: parsed,
         hpResult,
-        streak: currentStreak,
+        streak: streakResult.currentStreak,
         xpEarned,
       });
 

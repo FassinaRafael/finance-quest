@@ -90,14 +90,20 @@ function mapBudget(row: Record<string, unknown>): Budget {
  * Maps a Supabase `gamification_state` row to our local GamificationState interface.
  */
 function mapGamification(row: Record<string, unknown>): GamificationState {
+  const rawStreak = Number(row.current_streak ?? 0);
+  const rawMax = Number(row.max_streak ?? 0);
+  const lastActivityDate = row.last_activity_date ? String(row.last_activity_date) : null;
+  const currentStreak = lastActivityDate ? Math.max(1, rawStreak) : rawStreak;
+  const maxStreak = Math.max(rawMax, currentStreak);
+
   return {
     userId: String(row.user_id ?? ''),
     currentHp: Number(row.current_hp ?? 100),
     totalXp: Number(row.total_xp ?? 0),
     currentLevel: Number(row.current_level ?? 1),
-    currentStreak: Number(row.current_streak ?? 0),
-    maxStreak: Number(row.max_streak ?? 0),
-    lastActivityDate: row.last_activity_date ? String(row.last_activity_date) : null,
+    currentStreak,
+    maxStreak,
+    lastActivityDate,
     updatedAt: String(row.updated_at ?? new Date().toISOString()),
   };
 }
