@@ -267,6 +267,7 @@ export class StorageRepository {
    * Adds a new transaction with precision rounding and sanitized inputs.
    */
   public addTransaction(input: {
+    id?: string;
     amount: number;
     categoryId: string;
     type?: TransactionType;
@@ -289,8 +290,10 @@ export class StorageRepository {
     const safeAmount = Number(Math.max(0.01, Math.abs(input.amount)).toFixed(2));
     const safeDescription = (input.description || matchedCategory.name).trim().slice(0, 100);
 
+    const txId = input.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : ('tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7)));
+
     const transaction: Transaction = {
-      id: 'tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+      id: txId,
       userId: profile.id,
       categoryId: matchedCategory.id,
       amount: safeAmount,
