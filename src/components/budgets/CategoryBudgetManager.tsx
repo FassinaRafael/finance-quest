@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit3, X, Check, Landmark, Tag } from 'lucide-react';
 import { repository } from '@/lib/storage/repository';
+import {
+  pushProfileToSupabase,
+  pushBudgetsToSupabase,
+  pushCategoryToSupabase,
+  deleteCategoryFromSupabase,
+} from '@/lib/supabase/sync';
 import { formatCurrency } from '@/lib/utils/date-utils';
 import type { Category, Profile, Budget, TransactionType } from '@/types/database';
 
@@ -36,6 +42,15 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
   const [varBudgetInput, setVarBudgetInput] = useState(varBudget.toString());
   const [isSavedBudget, setIsSavedBudget] = useState(false);
 
+  // Keep inputs in sync when props update from Supabase sync
+  useEffect(() => {
+    setIncomeInput(profile.monthlyIncome.toString());
+  }, [profile.monthlyIncome]);
+
+  useEffect(() => {
+    setVarBudgetInput(varBudget.toString());
+  }, [varBudget]);
+
   // Category Modal State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -51,15 +66,18 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
     const income = Math.max(0, parseFloat(incomeInput) || 0);
     const limit = Math.max(0, parseFloat(varBudgetInput) || 0);
 
-    repository.saveProfile({
+    const updatedProfile: Profile = {
       ...profile,
       monthlyIncome: Number(income.toFixed(2)),
-    });
+    };
+    repository.saveProfile(updatedProfile);
+    pushProfileToSupabase(updatedProfile);
 
     const updatedBudgets = budgets.map((b) =>
       !b.categoryId ? { ...b, amountLimit: Number(limit.toFixed(2)) } : b
     );
     repository.saveBudgets(updatedBudgets);
+    pushBudgetsToSupabase(profile.id, updatedBudgets);
 
     setIsSavedBudget(true);
     setTimeout(() => setIsSavedBudget(false), 2500);
@@ -100,16 +118,21 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
       .slice(0, 20);
 
     if (editingCategoryId) {
-      repository.updateCategory(editingCategoryId, {
+      const updates = {
         name: sanitizedName,
         icon: catIcon,
         color: catColor,
         type: catType,
         isFixedCost: catIsFixed,
         aliases,
-      });
+      };
+      repository.updateCategory(editingCategoryId, updates);
+      const existing = categories.find((c) => c.id === editingCategoryId);
+      if (existing) {
+        pushCategoryToSupabase({ ...existing, ...updates }, profile.id);
+      }
     } else {
-      repository.addCategory({
+      const newCat = repository.addCategory({
         userId: profile.id,
         name: sanitizedName,
         icon: catIcon,
@@ -119,6 +142,7 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
         isUnclassifiedFallback: false,
         aliases,
       });
+      pushCategoryToSupabase(newCat, profile.id);
     }
 
     setIsCategoryModalOpen(false);
@@ -127,6 +151,7 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
   const handleDeleteCategory = (id: string) => {
     if (confirm('Deseja realmente excluir esta categoria? As transações associadas serão movidas para a categoria Geral/Outros.')) {
       repository.deleteCategory(id);
+      deleteCategoryFromSupabase(id);
     }
   };
 

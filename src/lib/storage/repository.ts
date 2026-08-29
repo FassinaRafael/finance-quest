@@ -249,9 +249,7 @@ export class StorageRepository {
   public getTransactions(): Transaction[] {
     const raw = this.getItem(STORAGE_KEYS.TRANSACTIONS);
     if (!raw) {
-      const initialTransactions = this.createInitialSeedTransactions();
-      this.saveTransactions(initialTransactions);
-      return initialTransactions;
+      return [];
     }
     try {
       return JSON.parse(raw);
@@ -398,47 +396,8 @@ export class StorageRepository {
     this.saveTransactions(txs);
   }
 
-  private createInitialSeedTransactions(): Transaction[] {
-    const today = getLocalDateString();
-    return [
-      {
-        id: 'tx-seed-1',
-        userId: 'usr-default',
-        categoryId: 'cat-food',
-        amount: 32.5,
-        type: 'EXPENSE',
-        description: 'Almoço Executivo',
-        isFixed: false,
-        source: 'APP',
-        transactionDate: today,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'tx-seed-2',
-        userId: 'usr-default',
-        categoryId: 'cat-transport',
-        amount: 24.0,
-        type: 'EXPENSE',
-        description: 'Uber para o trabalho',
-        isFixed: false,
-        source: 'TELEGRAM',
-        transactionDate: today,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'tx-seed-3',
-        userId: 'usr-default',
-        categoryId: 'cat-housing',
-        amount: 1400.0,
-        type: 'EXPENSE',
-        description: 'Aluguel do Mês',
-        isFixed: true,
-        source: 'APP',
-        transactionDate: today,
-        createdAt: new Date().toISOString(),
-      },
-    ];
-  }
+
+
 
   public addCategory(categoryData: Omit<Category, 'id' | 'createdAt'>): Category {
     const newCategory: Category = {

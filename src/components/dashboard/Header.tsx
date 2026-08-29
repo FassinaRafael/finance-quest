@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, User, Settings2 } from 'lucide-react';
+import { Sparkles, User, Settings2, LogOut } from 'lucide-react';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 import { getLevelInfo } from '@/lib/gamification/hp-engine';
 import type { GamificationState, Profile } from '@/types/database';
@@ -12,6 +12,7 @@ interface HeaderProps {
   gamification: GamificationState;
   onOpenAchievements?: () => void;
   onOpenSettings?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   gamification,
   onOpenAchievements,
   onOpenSettings,
+  onSignOut,
 }) => {
   const levelInfo = getLevelInfo(gamification.totalXp);
 
@@ -84,6 +86,16 @@ export const Header: React.FC<HeaderProps> = ({
               title="Backup & Configurações"
             >
               <Settings2 className="w-5 h-5" />
+            </button>
+          )}
+
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-red-900/40 border border-slate-700/60 text-slate-400 hover:text-red-400 transition-all active:scale-95 shadow-sm"
+              title="Sair da Conta"
+            >
+              <LogOut className="w-5 h-5" />
             </button>
           )}
         </div>

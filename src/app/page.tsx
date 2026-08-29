@@ -3,8 +3,16 @@
 import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Plus, Trophy, Sparkles } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { repository } from '@/lib/storage/repository';
-import { syncFromSupabase, subscribeToRealtime, pushTransactionToSupabase, pushGamificationToSupabase } from '@/lib/supabase/sync';
+import {
+  syncFromSupabase,
+  subscribeToRealtime,
+  pushTransactionToSupabase,
+  pushGamificationToSupabase,
+  deleteTransactionFromSupabase,
+} from '@/lib/supabase/sync';
 import { Header } from '@/components/dashboard/Header';
 import { MascotFinny } from '@/components/gamification/MascotFinny';
 import { HealthBar } from '@/components/gamification/HealthBar';
@@ -39,6 +47,8 @@ const emptySubscribe = () => () => {};
 
 export default function Home() {
   const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const { user, loading: authLoading, signOut } = useAuth();
+
   const [activeTab, setActiveTab] = useState<TabType>('DASHBOARD');
   const [profile, setProfile] = useState<Profile>(() => repository.getProfile());
   const [categories, setCategories] = useState<Category[]>(() => repository.getCategories());
@@ -54,7 +64,7 @@ export default function Home() {
   const [unlockedAchievement, setUnlockedAchievement] = useState<Achievement | null>(null);
   const [xpToast, setXpToast] = useState<{ show: boolean; text: string }>({ show: false, text: '' });
 
-  // Sync state on repository changes
+  // Sync state on repository changes + Supabase sync when authenticated
   useEffect(() => {
     const syncState = () => {
       setProfile(repository.getProfile());
@@ -68,15 +78,19 @@ export default function Home() {
 
     const unsubscribe = repository.subscribe(syncState);
 
-    // Initial fetch from Supabase + subscribe to Realtime
-    syncFromSupabase().then(() => syncState());
-    const unsubscribeRealtime = subscribeToRealtime();
+    // Only sync with Supabase if the user is authenticated
+    let unsubscribeRealtime: (() => void) | null = null;
+
+    if (user) {
+      syncFromSupabase(user.id).then(() => syncState());
+      unsubscribeRealtime = subscribeToRealtime(user.id);
+    }
 
     return () => {
       unsubscribe();
-      unsubscribeRealtime();
+      unsubscribeRealtime?.();
     };
-  }, []);
+  }, [user]);
 
   // Compute date details for current month
   const today = getLocalDateString(new Date(), profile.timezone);
@@ -174,14 +188,21 @@ export default function Home() {
 
   const handleDeleteTransaction = (id: string) => {
     repository.deleteTransaction(id);
+    deleteTransactionFromSupabase(id);
   };
 
-  if (!isMounted) {
+  // Loading states
+  if (!isMounted || authLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
       </div>
     );
+  }
+
+  // Auth gate: show login/signup screen if not authenticated
+  if (!user) {
+    return <AuthScreen />;
   }
 
   return (
@@ -207,6 +228,7 @@ export default function Home() {
         gamification={gamification}
         onOpenAchievements={() => setIsAchievementsDrawerOpen(true)}
         onOpenSettings={() => setIsBackupModalOpen(true)}
+        onSignOut={signOut}
       />
 
       {/* View Switcher based on Tab */}
