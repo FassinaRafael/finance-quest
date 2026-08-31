@@ -19,8 +19,9 @@ export function formatTelegramSuccessMessage(params: {
   hpResult: HPCalculationResult;
   streak: number;
   xpEarned: number;
+  projectionAlert?: string | null;
 }): string {
-  const { expense, hpResult, streak, xpEarned } = params;
+  const { expense, hpResult, streak, xpEarned, projectionAlert } = params;
 
   const moodEmojis: Record<string, string> = {
     ZEN: '🟢 Finny está Zen e orgulhoso! (100% HP)',
@@ -36,7 +37,7 @@ export function formatTelegramSuccessMessage(params: {
   const safeCategoryName = escapeTelegramMarkdown(expense.matchedCategoryName || 'Geral');
   const safeDescription = escapeTelegramMarkdown(expense.description || '');
 
-  return `
+  let message = `
 ✨ *Registro Confirmado no Finance Quest!*
 
 💸 *Valor:* ${formatCurrency(expense.amount)}
@@ -52,6 +53,88 @@ ${moodEmojis[hpResult.mood] || ''}
 ⭐ *XP Ganho:* +${xpEarned} XP
 ━━━━━━━━━━━━━━━━━━━━
 `.trim();
+
+  if (projectionAlert) {
+    message += `\n\n${projectionAlert}`;
+  }
+
+  return message;
+}
+
+/**
+ * Formats the comprehensive weekly chronicle report message for Telegram.
+ */
+export function formatWeeklyReportMessage(params: {
+  userName: string;
+  startDate: string;
+  endDate: string;
+  currentHp: number;
+  hpVariation: number;
+  currentStreak: number;
+  weeklyXp: number;
+  weeklyTotalSpent: number;
+  previousWeekTotalSpent: number;
+  topCategories: Array<{ name: string; icon: string; amount: number; percentage: number }>;
+  atRiskAlerts: string[];
+}): string {
+  const {
+    userName,
+    startDate,
+    endDate,
+    currentHp,
+    hpVariation,
+    currentStreak,
+    weeklyXp,
+    weeklyTotalSpent,
+    previousWeekTotalSpent,
+    topCategories,
+    atRiskAlerts,
+  } = params;
+
+  const hpSign = hpVariation >= 0 ? `+${hpVariation}` : `${hpVariation}`;
+  const hpEmoji = hpVariation >= 0 ? '📈' : '📉';
+
+  // Percentage change vs previous week
+  let spendDeltaText = 'Primeira semana monitorada';
+  if (previousWeekTotalSpent > 0) {
+    const deltaPercent = Number((((weeklyTotalSpent - previousWeekTotalSpent) / previousWeekTotalSpent) * 100).toFixed(1));
+    const deltaSign = deltaPercent > 0 ? `+${deltaPercent}%` : `${deltaPercent}%`;
+    const deltaWord = deltaPercent <= 0 ? 'a menos' : 'a mais';
+    spendDeltaText = `${Math.abs(deltaPercent)}% ${deltaWord} que na semana anterior (${deltaSign})`;
+  }
+
+  const topCatsFormatted = topCategories.length > 0
+    ? topCategories
+        .slice(0, 3)
+        .map((c, i) => `${['🥇', '🥈', '🥉'][i] || '•'} ${c.icon} *${escapeTelegramMarkdown(c.name)}:* ${formatCurrency(c.amount)} (${c.percentage.toFixed(0)}%)`)
+        .join('\n')
+    : 'Nenhum gasto registrado nesta semana.';
+
+  let report = `
+📜 *Crônica Semanal do Finny* 🐉
+*Aventureiro:* ${escapeTelegramMarkdown(userName)}
+*Período:* ${startDate} a ${endDate}
+
+━━━━━━━━━━━━━━━━━━━━
+❤️ *HP Financeiro:* ${currentHp}/100 (${hpEmoji} ${hpSign} na semana)
+🔥 *Streak Ativo:* ${currentStreak} dias
+⭐ *XP Conquistado:* +${weeklyXp} XP
+
+💸 *Total Gasto na Semana:* ${formatCurrency(weeklyTotalSpent)}
+📊 *Variação:* ${spendDeltaText}
+
+🏆 *Top Gastos da Semana:*
+${topCatsFormatted}
+━━━━━━━━━━━━━━━━━━━━
+`.trim();
+
+  if (atRiskAlerts.length > 0) {
+    report += `\n\n🚨 *Alertas de Projeção para o Fim do Mês:*\n${atRiskAlerts.join('\n')}`;
+  } else {
+    report += `\n\n✨ *Finny avisa:* Suas finanças estão controladas e dentro do ritmo ideal! Continue assim!`;
+  }
+
+  return report;
 }
 
 /**

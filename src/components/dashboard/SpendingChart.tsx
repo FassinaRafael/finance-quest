@@ -14,8 +14,9 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from 'recharts';
-import { PieChart as PieIcon, BarChart3, TrendingDown } from 'lucide-react';
+import { PieChart as PieIcon, BarChart3, TrendingDown, Calendar } from 'lucide-react';
 import { formatCurrency, parseYearMonth } from '@/lib/utils/date-utils';
+import { MonthlyComparisonChart } from '@/components/dashboard/MonthlyComparisonChart';
 import type { Transaction, Category, Budget } from '@/types/database';
 
 interface SpendingChartProps {
@@ -31,7 +32,7 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({
   budgets,
   className = '',
 }) => {
-  const [activeChart, setActiveChart] = useState<'CATEGORIES' | 'DAILY'>('CATEGORIES');
+  const [activeChart, setActiveChart] = useState<'CATEGORIES' | 'DAILY' | 'MONTHLY'>('CATEGORIES');
 
   // Filter current month expenses
   const currentMonthExpenses = useMemo(() => {
@@ -133,11 +134,28 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Ritmo Diário</span>
           </button>
+
+          <button
+            onClick={() => setActiveChart('MONTHLY')}
+            className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              activeChart === 'MONTHLY'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Evolução 6M</span>
+          </button>
         </div>
       </div>
 
       {/* Chart Canvas */}
-      {categoryData.length === 0 ? (
+      {activeChart === 'MONTHLY' ? (
+        <MonthlyComparisonChart
+          transactions={transactions}
+          categories={categories}
+        />
+      ) : categoryData.length === 0 ? (
         <div className="py-12 text-center text-xs text-slate-500">
           Nenhum gasto registrado neste mês para visualização gráfica.
         </div>

@@ -27,6 +27,8 @@ import { AchievementModal } from '@/components/gamification/AchievementModal';
 import { DataBackupModal } from '@/components/settings/DataBackupModal';
 import { BottomNavigation, type TabType } from '@/components/layout/BottomNavigation';
 import { calculateHealthPoints } from '@/lib/gamification/hp-engine';
+import { calculateMonthEndProjection } from '@/lib/insights/projection';
+import { MonthEndProjectionCard } from '@/components/dashboard/MonthEndProjectionCard';
 import {
   getLocalDateString,
   parseYearMonth,
@@ -145,6 +147,29 @@ export default function Home() {
     dateParts.day,
     totalDays,
     gamification.currentHp,
+  ]);
+
+  // Real-time Month-End Projection & Burn Rate Predictor
+  const monthProjection = useMemo(() => {
+    return calculateMonthEndProjection({
+      transactions,
+      categories,
+      budgets,
+      currentDayOfMonth: dateParts.day,
+      totalDaysInMonth: totalDays,
+      targetMonth: dateParts.month,
+      targetYear: dateParts.year,
+      overallVariableBudgetLimit: varBudget,
+    });
+  }, [
+    transactions,
+    categories,
+    budgets,
+    dateParts.day,
+    dateParts.month,
+    dateParts.year,
+    totalDays,
+    varBudget,
   ]);
 
   const handleSaveTransaction = (data: {
@@ -275,6 +300,9 @@ export default function Home() {
               totalVariableSpent={totalVariableSpent}
               daysRemainingInMonth={daysRemaining}
             />
+
+            {/* Real-time Month-End Burn Rate & Projection Predictor */}
+            <MonthEndProjectionCard projection={monthProjection} />
 
             {/* Interactive Visual Spending Chart */}
             <SpendingChart

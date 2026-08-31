@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseExpenseText } from '@/lib/telegram/parser';
-import { formatTelegramSuccessMessage, sendTelegramMessage } from '@/lib/telegram/client';
+import { formatTelegramSuccessMessage, sendTelegramMessage, escapeTelegramMarkdown } from '@/lib/telegram/client';
 import { transcribeAudioBuffer } from '@/lib/voice/transcriber';
 import { DEFAULT_CATEGORIES } from '@/lib/storage/default-data';
 import { calculateHealthPoints } from '@/lib/gamification/hp-engine';
 import { updateStreak } from '@/lib/gamification/streak-service';
-import { parseYearMonth, getDaysInMonth, getLocalDateString } from '@/lib/utils/date-utils';
+import { calculateCategoryProjection } from '@/lib/insights/projection';
+import { parseYearMonth, getDaysInMonth, getLocalDateString, formatCurrency } from '@/lib/utils/date-utils';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import type { TelegramWebhookUpdate } from '@/types/telegram';
 import type { Category } from '@/types/database';
@@ -232,13 +233,61 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 10. Reply on Telegram
+    // 10. Check for Immediate Proactive Overspend Risk Alert
+    let projectionAlert: string | null = null;
+    if (userId && parsed.matchedCategoryId) {
+      try {
+        const monthPrefix = `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-01`;
+        const { data: monthTxs } = await supabaseAdmin
+          .from('transactions')
+          .select('amount')
+          .eq('user_id', userId)
+          .eq('category_id', parsed.matchedCategoryId)
+          .gte('transaction_date', monthPrefix);
+
+        const catSpent = (monthTxs || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+        const { data: catBudget } = await supabaseAdmin
+          .from('budgets')
+          .select('amount_limit')
+          .eq('user_id', userId)
+          .eq('category_id', parsed.matchedCategoryId)
+          .maybeSingle();
+
+        const catBudgetLimit = Number(catBudget?.amount_limit || 0);
+
+        if (catBudgetLimit > 0) {
+          const projection = calculateCategoryProjection({
+            categoryId: parsed.matchedCategoryId,
+            categoryName: parsed.matchedCategoryName || 'Categoria',
+            categoryIcon: parsed.matchedCategoryIcon || '📦',
+            categoryColor: '#F59E0B',
+            isFixed: parsed.isFixed,
+            currentSpent: catSpent,
+            budgetLimit: catBudgetLimit,
+            currentDayOfMonth: dateParts.day,
+            totalDaysInMonth: totalDays,
+          });
+
+          if (projection.status === 'EXCEEDED') {
+            projectionAlert = `🚨 *Alerta Finny:* O orçamento de *${escapeTelegramMarkdown(projection.categoryName)}* foi *esgotado* neste mês (${formatCurrency(catSpent)} / ${formatCurrency(catBudgetLimit)})!`;
+          } else if (projection.status === 'DANGER') {
+            projectionAlert = `⚠️ *Alerta Finny:* No ritmo atual, o orçamento de *${escapeTelegramMarkdown(projection.categoryName)}* vai *estourar em ${projection.daysUntilDepleted} dias* (Projeção: ${formatCurrency(projection.projectedMonthEnd)} / Teto: ${formatCurrency(catBudgetLimit)})!`;
+          }
+        }
+      } catch (projErr) {
+        console.warn('Could not calculate category projection for alert:', projErr);
+      }
+    }
+
+    // 11. Reply on Telegram
     if (botToken) {
       const replyMessage = formatTelegramSuccessMessage({
         expense: parsed,
         hpResult,
         streak: streakResult.currentStreak,
         xpEarned,
+        projectionAlert,
       });
 
       await sendTelegramMessage(botToken, chatId, replyMessage);
