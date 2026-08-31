@@ -3,8 +3,11 @@
 -- Execute in Supabase SQL Editor
 -- =======================================================
 
--- 1. Create or replace analytical view for monthly aggregations
-CREATE OR REPLACE VIEW public.monthly_category_totals AS
+-- 1. Create or replace analytical view with SECURITY INVOKER
+-- Enforces RLS policies of the querying user on the underlying transactions table
+CREATE OR REPLACE VIEW public.monthly_category_totals
+WITH (security_invoker = on)
+AS
 SELECT
   user_id,
   DATE_TRUNC('month', transaction_date::date)::date AS month_date,
@@ -15,6 +18,6 @@ SELECT
 FROM public.transactions
 GROUP BY user_id, DATE_TRUNC('month', transaction_date::date), category_id, type;
 
--- 2. Grant access to authenticated users
+-- 2. Grant access to authenticated users and service role
 GRANT SELECT ON public.monthly_category_totals TO authenticated;
 GRANT SELECT ON public.monthly_category_totals TO service_role;
