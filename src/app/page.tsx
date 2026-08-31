@@ -302,7 +302,11 @@ export default function Home() {
             />
 
             {/* Real-time Month-End Burn Rate & Projection Predictor */}
-            <MonthEndProjectionCard projection={monthProjection} />
+            <MonthEndProjectionCard
+              projection={monthProjection}
+              userId={profile.id}
+              budgets={budgets}
+            />
 
             {/* Interactive Visual Spending Chart */}
             <SpendingChart
