@@ -8,6 +8,7 @@ import type {
   Transaction,
   GamificationState,
   Budget,
+  WishlistItem,
 } from '@/types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -18,6 +19,23 @@ function ensureValidUUID(id?: string | null): string {
     return id;
   }
   return crypto.randomUUID();
+}
+
+/**
+ * Maps a Supabase `wishlist_items` row to our local WishlistItem interface.
+ */
+function mapWishlistItem(row: Record<string, unknown>): WishlistItem {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id ?? ''),
+    title: String(row.title ?? ''),
+    price: Number(row.price ?? 0),
+    categoryId: row.category_id ? String(row.category_id) : null,
+    reason: row.reason ? String(row.reason) : null,
+    coolingOffDays: Number(row.cooling_off_days ?? 30),
+    status: (row.status as WishlistItem['status']) ?? 'WAITING',
+    createdAt: String(row.created_at ?? new Date().toISOString()),
+  };
 }
 
 /**
@@ -172,6 +190,17 @@ export async function syncFromSupabase(userId: string): Promise<boolean> {
 
     if (budgetRows && budgetRows.length > 0) {
       repository.saveBudgets(budgetRows.map(mapBudget));
+    }
+
+    // 6. Fetch wishlist items
+    const { data: wishlistRows } = await supabase
+      .from('wishlist_items')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (wishlistRows) {
+      repository.saveWishlist(wishlistRows.map(mapWishlistItem));
     }
 
     isSyncing = false;
@@ -377,3 +406,36 @@ export async function pushGamificationToSupabase(state: GamificationState): Prom
     console.warn('Failed to push gamification to Supabase:', err);
   }
 }
+
+/**
+ * Pushes a new or updated wishlist item to Supabase in the background.
+ */
+export async function pushWishlistItemToSupabase(item: WishlistItem): Promise<void> {
+  try {
+    await supabase.from('wishlist_items').upsert({
+      id: ensureValidUUID(item.id),
+      user_id: item.userId,
+      title: item.title,
+      price: item.price,
+      category_id: item.categoryId || null,
+      reason: item.reason || null,
+      cooling_off_days: item.coolingOffDays,
+      status: item.status,
+      created_at: item.createdAt,
+    });
+  } catch (err) {
+    console.warn('Failed to push wishlist item to Supabase:', err);
+  }
+}
+
+/**
+ * Deletes a wishlist item from Supabase in the background.
+ */
+export async function deleteWishlistItemFromSupabase(itemId: string): Promise<void> {
+  try {
+    await supabase.from('wishlist_items').delete().eq('id', itemId);
+  } catch (err) {
+    console.warn('Failed to delete wishlist item from Supabase:', err);
+  }
+}
+

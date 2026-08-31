@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, PlusCircle, History, Bot, Target } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, ShieldCheck, Target } from 'lucide-react';
 
-export type TabType = 'DASHBOARD' | 'QUICK_LOG' | 'BUDGETS' | 'HISTORY' | 'TELEGRAM' | 'ACHIEVEMENTS';
+export type TabType = 'DASHBOARD' | 'QUICK_LOG' | 'BUDGETS' | 'HISTORY' | 'PURCHASE_SHIELD' | 'TELEGRAM' | 'ACHIEVEMENTS';
 
 interface BottomNavigationProps {
   activeTab: TabType;
@@ -22,7 +22,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     { id: 'BUDGETS', label: 'Metas', icon: Target },
     { id: 'QUICK_LOG', label: 'Registrar', icon: PlusCircle, isMain: true },
     { id: 'HISTORY', label: 'Histórico', icon: History },
-    { id: 'TELEGRAM', label: 'Bot', icon: Bot },
+    { id: 'PURCHASE_SHIELD', label: 'Desejos', icon: ShieldCheck },
   ];
 
   return (

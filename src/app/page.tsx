@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Plus, Trophy, Sparkles } from 'lucide-react';
+import { ShieldCheck, Plus, Trophy, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { repository } from '@/lib/storage/repository';
@@ -21,7 +21,7 @@ import { SpendingChart } from '@/components/dashboard/SpendingChart';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { NumpadSheet } from '@/components/quick-input/NumpadSheet';
 import { CategoryBudgetManager } from '@/components/budgets/CategoryBudgetManager';
-import { TelegramSimulatorModal } from '@/components/dashboard/TelegramSimulatorModal';
+import { PurchaseSimulatorModal } from '@/components/insights/PurchaseSimulatorModal';
 import { AchievementsDrawer } from '@/components/gamification/AchievementsDrawer';
 import { AchievementModal } from '@/components/gamification/AchievementModal';
 import { DataBackupModal } from '@/components/settings/DataBackupModal';
@@ -60,7 +60,7 @@ export default function Home() {
   const [achievements, setAchievements] = useState<Achievement[]>(() => repository.getAchievements());
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>(() => repository.getUserAchievements());
 
-  const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
+  const [isPurchaseSimulatorOpen, setIsPurchaseSimulatorOpen] = useState(false);
   const [isAchievementsDrawerOpen, setIsAchievementsDrawerOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [unlockedAchievement, setUnlockedAchievement] = useState<Achievement | null>(null);
@@ -284,11 +284,11 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => setIsTelegramModalOpen(true)}
-                className="p-3.5 rounded-2xl bg-gradient-to-tr from-sky-600/20 to-blue-500/20 hover:from-sky-600/30 hover:to-blue-500/30 border border-sky-500/30 flex items-center justify-center gap-2 text-sky-300 font-bold text-xs transition-all active:scale-95 shadow-md"
+                onClick={() => setIsPurchaseSimulatorOpen(true)}
+                className="p-3.5 rounded-2xl bg-gradient-to-tr from-sky-600/20 to-indigo-500/20 hover:from-sky-600/30 hover:to-indigo-500/30 border border-sky-500/30 flex items-center justify-center gap-2 text-sky-300 font-bold text-xs transition-all active:scale-95 shadow-md"
               >
-                <Bot className="w-4 h-4 text-sky-400" />
-                <span>Simular Bot Telegram</span>
+                <ShieldCheck className="w-4 h-4 text-sky-400" />
+                <span>Posso Comprar?</span>
               </button>
             </div>
 
@@ -371,24 +371,25 @@ export default function Home() {
           </motion.div>
         )}
 
-        {activeTab === 'TELEGRAM' && (
+        {(activeTab === 'PURCHASE_SHIELD' || activeTab === 'TELEGRAM') && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-6 rounded-3xl bg-slate-900/90 border border-sky-500/40 text-center space-y-4 shadow-xl"
+            className="p-6 rounded-3xl bg-slate-900/90 border border-indigo-500/40 text-center space-y-4 shadow-xl"
           >
-            <div className="w-16 h-16 rounded-3xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center mx-auto text-sky-400">
-              <Bot className="w-8 h-8" />
+            <div className="w-16 h-16 rounded-3xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center mx-auto text-indigo-400">
+              <ShieldCheck className="w-8 h-8" />
             </div>
-            <h2 className="text-lg font-black text-white">Bot do Telegram Integrado</h2>
+            <h2 className="text-lg font-black text-white">Escudo Anti-Impulso & Wishlist</h2>
             <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-              Registre gastos do celular a qualquer momento enviando texto (ex: `35 almoço`) ou áudio de voz diretamente pelo Telegram!
+              Descubra quantas horas de vida custa cada desejo, simule a reação do Finny e coloque itens na Quarentena de 30 Dias para evitar compras por impulso!
             </p>
             <button
-              onClick={() => setIsTelegramModalOpen(true)}
-              className="py-3 px-6 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs transition-transform active:scale-95 shadow-lg shadow-sky-500/25"
+              onClick={() => setIsPurchaseSimulatorOpen(true)}
+              className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs transition-transform active:scale-95 shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 mx-auto"
             >
-              Abrir Simulador Interativo do Bot
+              <ShieldCheck className="w-4 h-4" />
+              <span>Abrir Simulador &quot;Posso Comprar?&quot;</span>
             </button>
           </motion.div>
         )}
@@ -416,16 +417,16 @@ export default function Home() {
         )}
       </div>
 
-      {/* Telegram Interactive Simulator Modal */}
-      <TelegramSimulatorModal
-        isOpen={isTelegramModalOpen}
-        onClose={() => setIsTelegramModalOpen(false)}
+      {/* Purchase Simulator & Anti-Impulse Shield Modal */}
+      <PurchaseSimulatorModal
+        isOpen={isPurchaseSimulatorOpen}
+        onClose={() => setIsPurchaseSimulatorOpen(false)}
         categories={categories}
         profile={profile}
         gamification={gamification}
         budgets={budgets}
         transactions={transactions}
-        onSaveTransaction={(data) => handleSaveTransaction({ ...data, source: 'TELEGRAM' })}
+        onSaveTransaction={(data) => handleSaveTransaction({ ...data, source: 'APP' })}
       />
 
       {/* Achievements Showcase Drawer */}
@@ -454,7 +455,9 @@ export default function Home() {
         activeTab={activeTab}
         onChangeTab={(tab) => {
           setActiveTab(tab);
-          if (tab === 'TELEGRAM') setIsTelegramModalOpen(true);
+          if (tab === 'PURCHASE_SHIELD' || tab === 'TELEGRAM') {
+            setIsPurchaseSimulatorOpen(true);
+          }
         }}
       />
     </main>

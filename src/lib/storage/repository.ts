@@ -8,6 +8,7 @@ import type {
   GamificationState,
   Achievement,
   UserAchievement,
+  WishlistItem,
   TransactionType,
   TransactionSource,
 } from '@/types/database';
@@ -27,6 +28,7 @@ const STORAGE_KEYS = {
   BUDGETS: 'fq_budgets',
   GAMIFICATION: 'fq_gamification',
   USER_ACHIEVEMENTS: 'fq_user_achievements',
+  WISHLIST: 'fq_wishlist',
 };
 
 const DEFAULT_PROFILE: Profile = {
@@ -437,6 +439,46 @@ export class StorageRepository {
     );
     this.saveTransactions(txs);
     return true;
+  }
+
+  // Wishlist / Impulse Shield
+  public getWishlist(): WishlistItem[] {
+    const raw = this.getItem(STORAGE_KEYS.WISHLIST);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  public saveWishlist(items: WishlistItem[]): void {
+    this.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(items));
+    this.notify();
+  }
+
+  public addWishlistItem(itemData: Omit<WishlistItem, 'id' | 'createdAt'>): WishlistItem {
+    const newItem: WishlistItem = {
+      id: crypto.randomUUID(),
+      ...itemData,
+      createdAt: new Date().toISOString(),
+    };
+    const items = this.getWishlist();
+    items.unshift(newItem);
+    this.saveWishlist(items);
+    return newItem;
+  }
+
+  public updateWishlistItem(id: string, updates: Partial<WishlistItem>): void {
+    const items = this.getWishlist().map((item) =>
+      item.id === id ? { ...item, ...updates } : item
+    );
+    this.saveWishlist(items);
+  }
+
+  public deleteWishlistItem(id: string): void {
+    const items = this.getWishlist().filter((item) => item.id !== id);
+    this.saveWishlist(items);
   }
 
   public exportAllData(): string {

@@ -72,3 +72,17 @@ export interface UserAchievement {
   achievementId: string;
   unlockedAt: string;
 }
+
+export type WishlistStatus = 'WAITING' | 'APPROVED' | 'CANCELLED' | 'BOUGHT';
+
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  title: string;
+  price: number;
+  categoryId?: string | null;
+  reason?: string | null;
+  createdAt: string;
+  coolingOffDays: number; // Default 30 days
+  status: WishlistStatus;
+}
