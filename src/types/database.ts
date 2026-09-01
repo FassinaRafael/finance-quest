@@ -8,6 +8,7 @@ export interface Profile {
   currency: string;
   timezone: string;
   monthlyIncome: number;
+  workHoursPerDay?: number; // e.g. 6 hours/day
   createdAt: string;
 }
 

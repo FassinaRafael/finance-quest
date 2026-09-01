@@ -7,10 +7,20 @@ import {
 
 describe('Purchase Simulator & Impulse Shield Engine', () => {
   describe('calculateWorkCost', () => {
-    it('calculates hourly rate and hours/days needed for standard income', () => {
-      // Monthly income R$ 5000 -> 160h/month = R$ 31.25/h
-      // Item cost R$ 250 -> 250 / 31.25 = 8.0h (1.0 day)
-      const res = calculateWorkCost(250, 5000);
+    it('calculates hourly rate and hours/days needed for 6h/day jornada', () => {
+      // Monthly income R$ 5000 -> 22 days * 6h = 132h/month -> R$ 37.88/h
+      // Item cost R$ 378.80 -> 10.0h -> 1.7 days (at 6h/day)
+      const res = calculateWorkCost(378.80, 5000, 6, 22);
+      expect(res.hourlyRate).toBe(37.88);
+      expect(res.hoursNeeded).toBe(10.0);
+      expect(res.daysNeeded).toBe(1.7);
+      expect(res.workCostMessage).toContain('1.7 dias (10h) de trabalho');
+    });
+
+    it('calculates hourly rate and hours/days needed for 8h/day jornada', () => {
+      // Monthly income R$ 5000 -> 20 days * 8h = 160h/month = R$ 31.25/h
+      // Item cost R$ 250 -> 250 / 31.25 = 8.0h (1.0 day at 8h/day)
+      const res = calculateWorkCost(250, 5000, 8, 20);
       expect(res.hourlyRate).toBe(31.25);
       expect(res.hoursNeeded).toBe(8.0);
       expect(res.daysNeeded).toBe(1.0);
@@ -18,7 +28,7 @@ describe('Purchase Simulator & Impulse Shield Engine', () => {
     });
 
     it('handles zero or negative income gracefully without crashing', () => {
-      const res = calculateWorkCost(100, 0);
+      const res = calculateWorkCost(100, 0, 6);
       expect(res.hourlyRate).toBe(0);
       expect(res.hoursNeeded).toBe(0);
       expect(res.workCostMessage).toBe('Renda não informada');

@@ -40,6 +40,7 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
   const varBudget = budgets.find((b) => !b.categoryId)?.amountLimit || 2200;
   const [incomeInput, setIncomeInput] = useState(profile.monthlyIncome.toString());
   const [varBudgetInput, setVarBudgetInput] = useState(varBudget.toString());
+  const [workHoursInput, setWorkHoursInput] = useState((profile.workHoursPerDay ?? 6).toString());
   const [isSavedBudget, setIsSavedBudget] = useState(false);
 
   // Keep inputs in sync when props update from Supabase sync
@@ -50,6 +51,10 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
   useEffect(() => {
     setVarBudgetInput(varBudget.toString());
   }, [varBudget]);
+
+  useEffect(() => {
+    setWorkHoursInput((profile.workHoursPerDay ?? 6).toString());
+  }, [profile.workHoursPerDay]);
 
   // Category Modal State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -65,10 +70,12 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
     e.preventDefault();
     const income = Math.max(0, parseFloat(incomeInput) || 0);
     const limit = Math.max(0, parseFloat(varBudgetInput) || 0);
+    const workHours = Math.max(1, Math.min(24, parseFloat(workHoursInput) || 6));
 
     const updatedProfile: Profile = {
       ...profile,
       monthlyIncome: Number(income.toFixed(2)),
+      workHoursPerDay: workHours,
     };
     repository.saveProfile(updatedProfile);
     pushProfileToSupabase(updatedProfile);
@@ -172,14 +179,15 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
         </div>
 
         <form onSubmit={handleSaveBudgets} className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Renda Mensal Declarada (R$)
+                Renda Mensal (R$)
               </label>
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={incomeInput}
                 onChange={(e) => setIncomeInput(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-indigo-500"
@@ -188,11 +196,28 @@ export const CategoryBudgetManager: React.FC<CategoryBudgetManagerProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Teto de Gastos Variáveis (R$)
+                Horas de Trabalho / Dia (h)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="1"
+                max="24"
+                value={workHoursInput}
+                onChange={(e) => setWorkHoursInput(e.target.value)}
+                placeholder="Ex: 6"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Teto Gastos Variáveis (R$)
               </label>
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={varBudgetInput}
                 onChange={(e) => setVarBudgetInput(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-indigo-500"

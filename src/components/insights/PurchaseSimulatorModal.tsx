@@ -78,6 +78,7 @@ export const PurchaseSimulatorModal: React.FC<PurchaseSimulatorModalProps> = ({
   const [itemPriceInput, setItemPriceInput] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id || 'cat-leisure');
   const [reasonInput, setReasonInput] = useState('');
+  const [workHours, setWorkHours] = useState<number>(profile.workHoursPerDay ?? 6);
 
   // Local Wishlist State
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => repository.getWishlist());
@@ -115,6 +116,7 @@ export const PurchaseSimulatorModal: React.FC<PurchaseSimulatorModalProps> = ({
     return simulatePurchaseImpact({
       price: priceNum,
       monthlyIncome: profile.monthlyIncome,
+      workHoursPerDay: workHours,
       variableBudgetLimit: varBudget,
       totalFixedSpent,
       totalVariableSpent,
@@ -125,6 +127,7 @@ export const PurchaseSimulatorModal: React.FC<PurchaseSimulatorModalProps> = ({
   }, [
     priceNum,
     profile.monthlyIncome,
+    workHours,
     varBudget,
     totalFixedSpent,
     totalVariableSpent,
@@ -335,21 +338,39 @@ export const PurchaseSimulatorModal: React.FC<PurchaseSimulatorModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                  Categoria
-                </label>
-                <select
-                  value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-indigo-500"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Categoria
+                  </label>
+                  <select
+                    value={selectedCategoryId}
+                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-indigo-500"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.icon} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Jornada (h/dia)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    max="24"
+                    value={workHours}
+                    onChange={(e) => setWorkHours(Math.max(1, Math.min(24, parseFloat(e.target.value) || 6)))}
+                    placeholder="Ex: 6"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
               </div>
             </div>
 

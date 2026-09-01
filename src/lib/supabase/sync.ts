@@ -49,6 +49,7 @@ function mapProfile(row: Record<string, unknown>): Profile {
     currency: String(row.currency ?? 'BRL'),
     timezone: String(row.timezone ?? 'America/Sao_Paulo'),
     monthlyIncome: Number(row.monthly_income ?? 5000),
+    workHoursPerDay: Number(row.work_hours_per_day ?? 6),
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
 }
@@ -295,6 +296,7 @@ export async function pushProfileToSupabase(profile: Profile): Promise<void> {
         currency: profile.currency,
         timezone: profile.timezone,
         telegram_chat_id: profile.telegramChatId,
+        work_hours_per_day: profile.workHoursPerDay ?? 6,
       })
       .eq('id', profile.id);
   } catch (err) {

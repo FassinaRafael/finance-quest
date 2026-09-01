@@ -37,6 +37,7 @@ const DEFAULT_PROFILE: Profile = {
   currency: 'BRL',
   timezone: 'America/Sao_Paulo',
   monthlyIncome: 5000,
+  workHoursPerDay: 6,
   createdAt: new Date().toISOString(),
 };
 

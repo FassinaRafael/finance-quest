@@ -5,6 +5,7 @@ export interface WorkCostResult {
   hourlyRate: number;
   hoursNeeded: number;
   daysNeeded: number;
+  workHoursPerDay: number;
   workCostMessage: string;
 }
 
@@ -30,25 +31,34 @@ export interface CoolingOffProgress {
 }
 
 /**
- * Calculates how many hours and days of work a purchase represents based on monthly income.
- * Assumes a standard 160 hours / month (20 working days x 8h/day).
+ * Calculates how many hours and days of work a purchase represents based on monthly income and hours worked per day.
+ * Assumes a standard 22 business days/month.
  */
-export function calculateWorkCost(price: number, monthlyIncome: number): WorkCostResult {
+export function calculateWorkCost(
+  price: number,
+  monthlyIncome: number,
+  workHoursPerDay: number = 6,
+  workDaysPerMonth: number = 22
+): WorkCostResult {
   const safeIncome = Math.max(0, monthlyIncome);
   const safePrice = Math.max(0, price);
+  const safeHoursPerDay = Math.max(1, Math.min(24, workHoursPerDay));
+  const safeDaysPerMonth = Math.max(1, workDaysPerMonth);
 
   if (safeIncome <= 0) {
     return {
       hourlyRate: 0,
       hoursNeeded: 0,
       daysNeeded: 0,
+      workHoursPerDay: safeHoursPerDay,
       workCostMessage: 'Renda não informada',
     };
   }
 
-  const hourlyRate = safeIncome / 160;
+  const totalMonthlyHours = safeHoursPerDay * safeDaysPerMonth;
+  const hourlyRate = safeIncome / totalMonthlyHours;
   const hoursNeeded = Number((safePrice / hourlyRate).toFixed(1));
-  const daysNeeded = Number((hoursNeeded / 8).toFixed(1));
+  const daysNeeded = Number((hoursNeeded / safeHoursPerDay).toFixed(1));
 
   let workCostMessage = `${hoursNeeded}h de trabalho`;
   if (daysNeeded >= 1) {
@@ -59,6 +69,7 @@ export function calculateWorkCost(price: number, monthlyIncome: number): WorkCos
     hourlyRate: Number(hourlyRate.toFixed(2)),
     hoursNeeded,
     daysNeeded,
+    workHoursPerDay: safeHoursPerDay,
     workCostMessage,
   };
 }
@@ -69,6 +80,7 @@ export function calculateWorkCost(price: number, monthlyIncome: number): WorkCos
 export function simulatePurchaseImpact(params: {
   price: number;
   monthlyIncome: number;
+  workHoursPerDay?: number;
   variableBudgetLimit: number;
   totalFixedSpent: number;
   totalVariableSpent: number;
@@ -79,6 +91,7 @@ export function simulatePurchaseImpact(params: {
   const {
     price,
     monthlyIncome,
+    workHoursPerDay = 6,
     variableBudgetLimit,
     totalFixedSpent,
     totalVariableSpent,
@@ -88,7 +101,7 @@ export function simulatePurchaseImpact(params: {
   } = params;
 
   const safePrice = Math.max(0, price);
-  const workCost = calculateWorkCost(safePrice, monthlyIncome);
+  const workCost = calculateWorkCost(safePrice, monthlyIncome, workHoursPerDay);
 
   // Baseline HP state
   const currentHpResult = calculateHealthPoints({
